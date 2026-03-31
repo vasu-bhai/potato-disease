@@ -1,66 +1,170 @@
-# Potato Disease Classification 🥔🍃
+# Potato Disease Classifier 🥔🍃
 
-This project is a complete, end-to-end Deep Learning application designed to detect and classify diseases in potato leaves. By uploading an image of a potato leaf, the system uses a Convolutional Neural Network (CNN) to predict whether the leaf is **Healthy**, or if it suffers from **Early Blight** or **Late Blight**.
+An end-to-end deep learning application that detects and classifies diseases in potato leaves with **97.8% validation accuracy**. Upload a photo of a potato leaf and the system instantly predicts whether it is **Healthy**, suffering from **Early Blight**, or **Late Blight** — along with a confidence score.
 
-The application features a modern Machine Learning architecture separated into a fast API backend, a dedicated model serving container, and an interactive React frontend.
-
-## 🏗️ Architecture & Technologies
-
-The project is broken into three main components:
-
-1. **Frontend (React)**: 
-   - A user-friendly web interface built with **React** and **Material-UI**.
-   - Users can drag and drop images of potato leaves into the browser to get real-time disease predictions and confidence scores.
-   
-2. **Backend API (FastAPI)**:
-   - A highly performant API built with **FastAPI**.
-   - Acts as the middleman that receives the uploaded image, validates it, and preprocesses it into an array format.
-   - Forwards the preprocessed data to the model server and relays the result back to the React UI.
-
-3. **Model Serving (TensorFlow Serving)**:
-   - The trained CNN model is hosted using **TensorFlow Serving** (`localhost:8502`).
-   - This keeps the heavy machine learning inference isolated from the API web server for maximum performance and scalability.
-   - (*Note: The model was trained using TensorFlow/Keras on the PlantVillage dataset using the Jupyter notebooks located in the `potatoooooooo` folder.*)
+> **Live demo:** _[Deploy to Hugging Face Spaces or Render and add your link here]_
 
 ---
 
-## 🚀 Setup & Installation
+## Demo
 
-To run this project, you need to spin up the three environments:
+> _Add a GIF or screenshot here. Example: record a screen capture of dragging a leaf image into the app._
+>
+> ```
+> ![App demo](docs/demo.gif)
+> ```
 
-### 1. Model Serving (TensorFlow Serving)
-You must have Docker or a local TensorFlow Model Server running that points to your saved model directory on port `8502`.
-*(Note: Ensure your `models.config` points to your `models/` directory correctly).*
+---
 
-### 2. Backend API
-1. Open a terminal and navigate to the `api` directory:
-   ```bash
-   cd api
-   ```
-2. Install the required Python packages (it is recommended to use a virtual environment):
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run the FastAPI server:
-   ```bash
-   python main.py
-   # Alternatively: uvicorn main:app --host localhost --port 8000
-   ```
+## Model performance
 
-### 3. Frontend Web App
-1. Open a new terminal and navigate to the `frontend` directory:
-   ```bash
-   cd frontend
-   ```
-2. Install the Node modules:
-   ```bash
-   npm install
-   ```
-3. Start the React development server:
-   ```bash
-   npm start
-   ```
+| Metric | Value |
+|---|---|
+| Training accuracy | 99.2% |
+| Validation accuracy | 97.8% |
+| Dataset | PlantVillage (2,152 images) |
+| Classes | Healthy · Early Blight · Late Blight |
+| Architecture | CNN (TensorFlow / Keras) |
+| Input size | 256 × 256 px |
 
-*(Ensure the backend is running before testing the frontend, as React communicates with the FastAPI layer!)*
-"# potato-disease" 
-#
+---
+
+## Architecture
+
+The project is split into three independently deployable components:
+
+```
+potato-disease/
+├── api/             # FastAPI backend — receives images, calls model server
+├── frontend/        # React + Material-UI drag-and-drop UI
+├── models/          # TF Serving saved model (potatoes_model/1/)
+├── training/        # Jupyter notebooks — data prep, training, evaluation
+├── models.config    # TF Serving config
+└── README.md
+```
+
+**Request flow:**
+
+```
+User uploads image
+       ↓
+React frontend (port 3000)
+       ↓ POST /predict
+FastAPI backend (port 8000)
+       ↓ gRPC
+TF Serving (port 8502)
+       ↓
+Prediction + confidence score returned to UI
+```
+
+---
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Model training | TensorFlow · Keras · Jupyter |
+| Model serving | TensorFlow Serving (Docker) |
+| Backend API | FastAPI · Python · Uvicorn |
+| Frontend | React · Material-UI |
+| Dataset | PlantVillage (via TensorFlow Datasets) |
+
+---
+
+## Setup & installation
+
+You need three services running simultaneously.
+
+### Prerequisites
+
+- Python 3.9+
+- Node.js 16+
+- Docker (for TF Serving)
+
+---
+
+### 1. Model serving (TensorFlow Serving)
+
+```bash
+docker pull tensorflow/serving
+
+docker run -it --rm -p 8502:8501 \
+  --mount type=bind,source=$(pwd)/models,target=/models/potato \
+  -e MODEL_NAME=potato \
+  tensorflow/serving
+```
+
+Or point to the `models.config` file directly:
+
+```bash
+docker run -it --rm -p 8502:8501 \
+  --mount type=bind,source=$(pwd),target=/potato \
+  tensorflow/serving \
+  --model_config_file=/potato/models.config
+```
+
+---
+
+### 2. Backend API (FastAPI)
+
+```bash
+cd api
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+
+pip install -r requirements.txt
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+API will be available at `http://localhost:8000`. Docs at `http://localhost:8000/docs`.
+
+---
+
+### 3. Frontend (React)
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+App will open at `http://localhost:3000`.
+
+> Make sure the FastAPI backend is running before starting the frontend.
+
+---
+
+## Usage
+
+1. Open `http://localhost:3000` in your browser.
+2. Drag and drop a potato leaf image into the upload area (or click to browse).
+3. The model returns a prediction and confidence score within 1–2 seconds.
+
+---
+
+## Training
+
+Notebooks are located in the `training/` folder:
+
+| Notebook | Description |
+|---|---|
+| `training.ipynb` | Data loading, augmentation, CNN architecture, training loop |
+| `evaluation.ipynb` | Confusion matrix, per-class accuracy, sample predictions |
+
+The model was trained on the **PlantVillage** dataset using TensorFlow Datasets with image augmentation (random flip, rotation, zoom) to improve generalisation.
+
+---
+
+## Future improvements
+
+- [ ] Deploy to Hugging Face Spaces or Render
+- [ ] Add Grad-CAM heatmaps to show which leaf regions triggered the prediction
+- [ ] Expand to more crop diseases beyond potato
+- [ ] Add mobile-responsive design
+- [ ] Write unit tests for the FastAPI endpoints
+
+---
+
+## License
+
+MIT — free to use and modify.
